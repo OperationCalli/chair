@@ -218,6 +218,13 @@
         document.body.addEventListener('htmx:wsError', function (evt) {
             console.error("WS Error", evt);
         });
+
+        document.body.addEventListener('htmx:wsAfterSend', function (evt) {
+            const form = evt.detail.elt;
+            if (form && form.tagName === 'FORM') {
+                form.reset();
+            }
+        });
     </script>
 </body>
 
