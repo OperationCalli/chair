@@ -1,0 +1,40 @@
+<div class="relative w-full h-full flex items-center justify-center animate-fade-in">
+
+    <!-- Metaphor: Empty Base -->
+    <!-- Ideally this is a high-res SVG or PNG of a sleek white desk. Using generic styling for representation -->
+
+    <!-- FLOOR GLOW -->
+    <div class="absolute bottom-[20%] w-[300px] h-[60px] bg-cyan-400/20 blur-[50px] rounded-full"></div>
+
+    <!-- DESK IMAGE (Placeholder logic: Creating a CSS shape or would use <img> in real prod) -->
+    <!-- Using a CSS representation for portability in this response, or an <img> tag if we had assets. 
+         Prompt said "desk and chair are visible but empty". -->
+
+    <div class="relative z-10 transform scale-110">
+        <!-- Chair Empty -->
+        <div
+            class="absolute top-[20px] left-1/2 -translate-x-1/2 w-32 h-40 bg-white border border-gray-200 rounded-t-3xl shadow-lg opacity-80 desk-chair-back">
+        </div>
+        <div
+            class="absolute top-[140px] left-1/2 -translate-x-1/2 w-36 h-32 bg-gray-50 border border-gray-200 rounded-xl shadow-md desk-chair-seat">
+        </div>
+
+        <!-- Desk Surface -->
+        <div
+            class="absolute top-[100px] left-1/2 -translate-x-1/2 w-[400px] h-[120px] bg-gradient-to-b from-white to-gray-50 border border-white rounded-2xl shadow-glass transform rotate-x-12 perspective-lg z-20 flex items-center justify-center">
+
+            <!-- STATUS INDICATOR: AVAILABLE -->
+            <div
+                class="flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-md rounded-full border border-cyan-100 shadow-sm">
+                <span class="relative flex h-3 w-3">
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                </span>
+                <span class="text-xs font-bold tracking-[0.2em] text-cyan-600">UNIT AVAILABLE</span>
+            </div>
+
+        </div>
+    </div>
+
+</div>

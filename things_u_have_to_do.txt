@@ -1,0 +1,48 @@
+THINGS U HAVE TO DO TO MAKE IT ONLINE
+
+1. GET YOUR CODE ON GITHUB
+   - Create a new repository on GitHub.
+   - Open your terminal in the project folder.
+   - Run:
+     git init
+     git add .
+     git commit -m "Initial commit"
+     git branch -M main
+     git remote add origin <YOUR_GITHUB_REPO_URL>
+     git push -u origin main
+
+2. SET UP AN ONLINE DATABASE (POSTGRESQL)
+   - Go to Supabase (supabase.com) or Neon (neon.tech) and sign up (free tier is fine).
+   - Create a new project.
+   - Once created, find the "Connection String" or "Database URL".
+     It will look like: postgresql://user:password@aws-0-us-east-1.pooler.supabase.com:6543/postgres
+   - Copy this URL.
+
+3. DEPLOY THE BACKEND (RENDER OR RAILWAY RECOMMENDED FOR PYTHON)
+   * Vercel is great for frontend, but for Python FastAPI + WebSockets, Render or Railway is often easier for beginners.
+   
+   OPTION A: RENDER (easiest for WebSockets)
+   - Go to render.com
+   - Click "New +" -> "Web Service".
+   - Connect your GitHub repo.
+   - Settings:
+     * Runtime: Python 3
+     * Build Command: pip install -r requirements.txt
+     * Start Command: python run.py
+   - Environment Variables (Scroll down):
+     * Key: DATABASE_URL
+     * Value: <PASTE YOUR SUPABASE/NEON URL HERE>
+   - Click "Create Web Service".
+
+4. UPDATE YOUR LOCAL CONFIG (OPTIONAL)
+   - If you want to run it locally with the online DB, you can set the environment variable in your terminal:
+     (Windows PowerShell): $env:DATABASE_URL="your_postgres_url"; python run.py
+
+5. VERIFY
+   - Once Render finishes building, it will give you a URL (e.g., chair-app.onrender.com).
+   - Open that link.
+   - Sign up with a new user (and a Profile Picture URL).
+   - Test the booking and chat!
+
+NOTES:
+- The "Profile Image URL" must be a direct link to an image (e.g., end in .jpg or .png). You can upload images to Imgur or Supabase Storage to get these links.
