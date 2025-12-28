@@ -164,8 +164,7 @@
 
         <!-- Right Side Chat Panel -->
         <aside class="w-80 glass-panel border-l border-white/50 h-full flex flex-col relative z-20 shadow-xl"
-            hx-ext="ws"
-            ws-connect="{{ 'wss' if request.url.scheme == 'https' else 'ws' }}://{{ request.url.netloc }}/ws/{{ user.id if user else 0 }}">
+            hx-ext="ws" ws-connect="/ws/{{ user.id if user else 0 }}">
 
             <div class="p-4 border-b border-gray-100/50 flex justify-between items-center">
                 <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500">Comms Link</h2>
