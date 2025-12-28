@@ -263,20 +263,26 @@ async def create_booking(request: Request, start_time: str = Form(...), end_time
         t_start = datetime.strptime(start_time, "%H:%M").time()
         t_end = datetime.strptime(end_time, "%H:%M").time()
         
-        dt_start = datetime.combine(now.date(), t_start)
-        dt_end = datetime.combine(now.date(), t_end)
+        # Determine booking date. 
+        # If the requested time is very close to current time (e.g. within last hour), assume Today.
+        # If requested start is > now, Today.
+        # If requested start < now (significantly), maybe Tomorrow?
+        # For simplicity in this v1: ALWAYS TODAY unless end < start (overnight).
         
-        # Handle wraparound to next day if time is earlier than now (e.g. booking for 1 AM to 2 AM when it's 11 PM)
-        # Or if start < now, assume it's for tomorrow? 
-        # For this "Competitive" immediate nature, let's assume they might mean "Now" if start is close.
-        # Actually, if dt_start < now, maybe they mean tomorrow.
-        if dt_start < now - timedelta(minutes=5): # allowances for slight lag
+        booking_date = now.date()
+        dt_start = datetime.combine(booking_date, t_start)
+        dt_end = datetime.combine(booking_date, t_end)
+        
+        # Handle wraparound (e.g. 23:00 to 01:00)
+        if dt_end <= dt_start:
+            dt_end += timedelta(days=1)
+            
+        # Basic Validation
+        if dt_start < now - timedelta(minutes=15):
+             # If booking in the past (>15m ago), maybe they meant tomorrow?
+             # Let's simple check: if it's really far in past, add a day.
              dt_start += timedelta(days=1)
              dt_end += timedelta(days=1)
-             
-        if dt_end <= dt_start:
-            # Maybe crossing midnight?
-            dt_end += timedelta(days=1)
 
         duration = (dt_end - dt_start).total_seconds() / 60
         if duration <= 0:
@@ -285,24 +291,23 @@ async def create_booking(request: Request, start_time: str = Form(...), end_time
     except ValueError:
         return HTMLResponse("<span class='text-red-500'>Invalid Time Format</span>")
 
-    # Reuse existing logic for overlap/preemption
-    # ... (Simplified for this update: Just check overlap)
-    
+    # Conflict Check
     conflict = db.query(models.Booking).filter(
         models.Booking.is_active == True,
-        models.Booking.start_time < dt_end,
-        models.Booking.end_time > dt_start
+        models.Booking.start_time < dt_end, # Overlap: existing Start < New End
+        models.Booking.end_time > dt_start  # Overlap: existing End > New Start
     ).first()
     
     if not conflict:
-        new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end)
+        new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end, is_active=True)
         db.add(new_booking)
         db.commit()
-        return HTMLResponse(f"<span class='text-green-500'>Booked {start_time}-{end_time}</span>")
+        # Trigger an HTMX update of the schedule list potentially? 
+        # For now just success message. User can refresh or polling updates it.
+        return HTMLResponse(f"<span class='text-green-500 font-bold'>OFFICE SECURED</span>")
     else:
-        # Preemption Logic Check (User B is shorter than User A?)
-        # Only applies if conflict is currently active? 
-        return HTMLResponse("<span class='text-red-500'>Slot Occupied (Logic restricted)</span>")
+        # Simple rejection for now to ensure stability
+        return HTMLResponse(f"<span class='text-red-500'>TIME CONFLICT</span>")
 
 
 # --- CHAT & WEBSOCKETS ---
