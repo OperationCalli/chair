@@ -79,34 +79,46 @@
 
     <div class="flex h-screen w-full relative">
 
+        <!-- Left Side: Calendar/Schedule -->
+        <aside class="w-80 glass-panel border-r border-white/50 h-full flex flex-col relative z-20 shadow-xl p-6">
+            <div class="mb-6 flex items-center gap-2 border-b border-gray-100/50 pb-4">
+                <div class="w-2 h-2 bg-cyan-400 rounded-full shadow-glow"></div>
+                <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500">Temporal Data</h2>
+            </div>
+
+            <!-- Schedule List Moved Here -->
+            <div id="schedule-container" hx-get="/schedule" hx-trigger="load, every 10s"
+                class="flex-1 overflow-y-auto custom-scrollbar">
+                <div class="h-10 animate-pulse bg-gray-100/50 rounded"></div>
+            </div>
+        </aside>
+
         <!-- Main Dashboard Area -->
-        <main class="flex-1 flex flex-col relative z-10 p-8 items-center justify-center">
+        <main class="flex-1 flex flex-col relative z-10 items-center justify-center">
 
             <!-- Header -->
-            <header class="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-20">
-                <div class="flex items-center gap-3">
-                    <div class="w-3 h-3 rounded-full bg-scifi-glow shadow-glow animate-pulse"></div>
+            <header class="absolute top-0 left-0 w-full p-6 flex justify-center items-center z-20 pointer-events-none">
+                <div class="glass-panel px-8 py-3 rounded-full pointer-events-auto flex items-center gap-4">
                     <h1 class="text-xl font-bold tracking-widest uppercase text-gray-800">Chair<span
                             class="text-cyan-500">OS</span></h1>
-                </div>
-                <div class="flex gap-4">
+                    <div class="w-px h-6 bg-gray-300"></div>
                     {% if user %}
-                    <div class="flex items-center gap-2 glass-panel px-4 py-2 rounded-full">
-                        <span class="text-sm font-medium">{{ user.username }}</span>
+                    <div class="flex items-center gap-2">
                         <img src="{{ user.profile_image_url }}"
-                            class="w-8 h-8 rounded-full border border-gray-200 object-cover">
+                            class="w-6 h-6 rounded-full border border-gray-200 object-cover">
+                        <span class="text-xs font-medium uppercase tracking-wide">{{ user.username }}</span>
                     </div>
                     {% else %}
                     <a href="/login"
-                        class="px-6 py-2 glass-panel rounded-full hover:bg-white transition-all text-sm font-semibold uppercase tracking-wide">Login</a>
+                        class="text-xs font-bold uppercase tracking-wide hover:text-cyan-600 transition-colors">Login</a>
                     {% endif %}
                 </div>
             </header>
 
             <!-- CENTRAL VISUAL METAPHOR: The Desk -->
-            <!-- This container will be swapped via HTMX based on state -->
             <div id="desk-visual-container" hx-get="/desk-status" hx-trigger="load, every 2s"
-                class="relative w-[600px] h-[600px] flex items-center justify-center transition-all duration-500">
+                class="relative w-full h-full flex items-center justify-center transition-all duration-500 pb-20">
+                <!-- Added pb-20 to visually move it 'higher' relative to center -->
 
                 <!-- Initial Loading State -->
                 <div class="animate-pulse flex flex-col items-center">
@@ -116,41 +128,44 @@
 
             </div>
 
-            <!-- Booking Controls -->
-            <!-- Booking Controls & Schedule -->
+            <!-- Booking Controls (Bottom Center) -->
             <div
-                class="absolute bottom-10 left-1/2 transform -translate-x-1/2 glass-panel p-6 rounded-2xl w-full max-w-md flex flex-col gap-4">
-
-                <!-- Schedule List -->
-                <div id="schedule-container" hx-get="/schedule" hx-trigger="load, every 10s">
-                    <!-- Loaded via HTMX -->
-                    <div class="h-10 animate-pulse bg-gray-100 rounded"></div>
+                class="absolute bottom-10 glass-panel p-6 rounded-2xl w-full max-w-sm flex flex-col gap-4 mx-auto z-30">
+                <div class="flex justify-between items-center border-b border-gray-200/50 pb-2 mb-2">
+                    <h3 class="text-[10px] uppercase tracking-widest text-scifi-muted">Resource Allocation</h3>
+                    <div class="flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse"></span>
+                        <span class="text-[10px] text-cyan-600 font-mono">STANDBY</span>
+                    </div>
                 </div>
 
-                <div class="border-t border-gray-200/50 pt-4">
-                    <h3 class="text-xs uppercase tracking-widest text-scifi-muted mb-4 text-center">Resource Allocation
-                    </h3>
-                    <form hx-post="/book" hx-swap="none" class="flex gap-2 items-center">
+                <form hx-post="/book" hx-swap="none" class="flex gap-2 items-center justify-between">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[8px] uppercase tracking-wider text-gray-400 font-bold">Start</label>
                         <input type="time" name="start_time"
-                            class="bg-white/50 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:border-scifi-glow outline-none w-24"
+                            class="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs focus:border-cyan-400 outline-none w-24 font-mono text-center"
                             required>
-                        <span class="text-gray-400 text-xs">TO</span>
+                    </div>
+                    <span class="text-gray-300 text-xs mt-3">→</span>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[8px] uppercase tracking-wider text-gray-400 font-bold">End</label>
                         <input type="time" name="end_time"
-                            class="bg-white/50 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:border-scifi-glow outline-none w-24"
+                            class="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs focus:border-cyan-400 outline-none w-24 font-mono text-center"
                             required>
+                    </div>
 
-                        <button type="submit"
-                            class="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">Book</button>
-                    </form>
-                    <div id="booking-message" class="mt-2 text-xs text-center h-4 text-cyan-600"></div>
-                </div>
+                    <button type="submit"
+                        class="bg-black text-white h-full px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200/50 mt-3 self-end">Book</button>
+                </form>
+                <div id="booking-message" class="text-[10px] text-center h-3 text-cyan-600 font-mono"></div>
             </div>
 
         </main>
 
         <!-- Right Side Chat Panel -->
         <aside class="w-80 glass-panel border-l border-white/50 h-full flex flex-col relative z-20 shadow-xl"
-            hx-ext="ws" ws-connect="/ws/{{ user.id if user else 0 }}">
+            hx-ext="ws"
+            ws-connect="{{ 'wss' if request.url.scheme == 'https' else 'ws' }}://{{ request.url.netloc }}/ws/{{ user.id if user else 0 }}">
 
             <div class="p-4 border-b border-gray-100/50 flex justify-between items-center">
                 <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500">Comms Link</h2>
