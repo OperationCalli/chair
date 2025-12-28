@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-import models, schemas, database
+from . import models, schemas, database
 from typing import Optional
 
 # Init DB

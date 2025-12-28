@@ -1,6 +1,5 @@
-from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_enginer
 import os
 
 # Using sqlite for default if POSTGRES_URL not provided for easier local running, 
