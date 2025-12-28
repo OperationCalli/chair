@@ -243,7 +243,7 @@ async def get_schedule(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("partials_schedule.html", {"request": request, "bookings": bookings})
 
 @app.post("/book")
-async def create_booking(request: Request, start_time: str = Form(...), end_time: str = Form(...), db: Session = Depends(get_db)):
+async def create_booking(request: Request, start_time: str = Form(...), end_time: str = Form(...), time_offset: int = Form(0), db: Session = Depends(get_db)):
     user_id = request.cookies.get("user_id")
     if not user_id:
         return HTMLResponse("<span class='text-red-500'>Login required</span>")
@@ -252,67 +252,79 @@ async def create_booking(request: Request, start_time: str = Form(...), end_time
     if not user:
          return HTMLResponse("<span class='text-red-500'>Invalid User</span>")
 
-    # Parse HH:MM inputs (assuming today)
+    # Parse HH:MM inputs
     try:
-        now = datetime.utcnow()
-        # Naive approach: Parse time, combine with today's date
-        # Note: UTC vs Local is tricky. We'll assume server time for prototype or pass TZ.
-        # Ideally frontend sends ISO, but "Time to Time" implies simple hours.
-        # Let's assume input is HH:MM in server time (UTC) for simplicity, or we treat it as "Next occurrence of this time".
+        now_utc = datetime.utcnow()
         
         t_start = datetime.strptime(start_time, "%H:%M").time()
         t_end = datetime.strptime(end_time, "%H:%M").time()
         
-        # Determine booking date. 
-        # If the requested time is very close to current time (e.g. within last hour), assume Today.
-        # If requested start is > now, Today.
-        # If requested start < now (significantly), maybe Tomorrow?
-        # For simplicity in this v1: ALWAYS TODAY unless end < start (overnight).
+        # 1. Construct Naive Local Datetime from Input
+        # Assume 'Today' relative to client first? Or just use Server Date?
+        # Let's use Server Date but assume the Time part is Local.
         
-        booking_date = now.date()
-        dt_start = datetime.combine(booking_date, t_start)
-        dt_end = datetime.combine(booking_date, t_end)
+        # Actually safer: Convert Server UTC Now -> Client Local Now first to get 'Today' in client terms.
+        # client_now = now_utc - timedelta(minutes=time_offset)
+        # But wait, offset is 'UTC - Local'. So Local = UTC - Offset.
+        # If I am India (-330), Local = UTC - (-330) = UTC + 330.
+        # So client_now = now_utc - timedelta(minutes=time_offset)   X
+        # Wait. Offset = UTC - Local. => Local = UTC - Offset. => UTC = Local + Offset.
+        # Yes.
         
-        # Handle wraparound (e.g. 23:00 to 01:00)
-        if dt_end <= dt_start:
-            dt_end += timedelta(days=1)
+        # This is strictly for the DATE part.
+        # Only tricky if user is crossing midnight.
+        # Let's simple: Use user's input HH:MM, attach to today's date, then Apply Offset to get UTC.
+        
+        # We process everything in "User Local Time" logic first, then convert result to UTC for DB.
+        
+        naive_today = datetime.now().date() # Server local... bad.
+        # Let's rely on basic "Next occurrence" logic or just "Today".
+        
+        # V2 Logic used simple "datetime.combine(now.date(), t_start)".
+        # Let's stick to that but shift the final result by offset.
+        
+        dt_start_local = datetime.combine(now_utc.date(), t_start)
+        dt_end_local = datetime.combine(now_utc.date(), t_end)
+        
+        # Wraparound (User inputs 23:00 to 01:00)
+        if dt_end_local <= dt_start_local:
+            dt_end_local += timedelta(days=1)
             
-        # Basic Validation
-        if dt_start < now - timedelta(minutes=15):
-             # If booking in the past (>15m ago), maybe they meant tomorrow?
-             # Let's simple check: if it's really far in past, add a day.
-             dt_start += timedelta(days=1)
-             dt_end += timedelta(days=1)
-
-        duration = (dt_end - dt_start).total_seconds() / 60
+        # Convert to UTC for Storage
+        # UTC = Local + Offset (minutes)
+        dt_start_utc = dt_start_local + timedelta(minutes=time_offset)
+        dt_end_utc = dt_end_local + timedelta(minutes=time_offset)
+        
+        # Duration Check
+        duration = (dt_end_utc - dt_start_utc).total_seconds() / 60
         if duration <= 0:
              return HTMLResponse("<span class='text-red-500'>Invalid Duration</span>")
 
     except ValueError:
         return HTMLResponse("<span class='text-red-500'>Invalid Time Format</span>")
 
-    # Conflict Check
+    # Conflict Check (using UTC)
     try:
         conflict = db.query(models.Booking).filter(
             models.Booking.is_active == True,
-            models.Booking.start_time < dt_end, 
-            models.Booking.end_time > dt_start
+            models.Booking.start_time < dt_end_utc, 
+            models.Booking.end_time > dt_start_utc
         ).first()
         
         if not conflict:
-            new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end, is_active=True)
+            new_booking = models.Booking(user_id=user.id, start_time=dt_start_utc, end_time=dt_end_utc, is_active=True)
             db.add(new_booking)
             db.commit()
             
-            # Success with Trigger
             response = HTMLResponse(f"<span class='text-green-500 font-bold'>OFFICE SECURED</span>")
             response.headers["HX-Trigger"] = "updateSchedule"
             return response
         else:
-            return HTMLResponse(f"<span class='text-red-500'>CONFLICT: {conflict.start_time.strftime('%H:%M')}-{conflict.end_time.strftime('%H:%M')}</span>")
+            # Convert conflict time back to local for display? Or just show generic.
+            return HTMLResponse(f"<span class='text-red-500'>CONFLICT DETECTED</span>")
     except Exception as e:
         print(f"Booking Error: {e}")
-        return HTMLResponse(f"<span class='text-red-500'>SYSTEM ERROR: {str(e)}</span>")
+        return HTMLResponse(f"<span class='text-red-500'>SYSTEM ERROR</span>")
 
 
 # --- CHAT & WEBSOCKETS ---

@@ -116,7 +116,7 @@
             </header>
 
             <!-- CENTRAL VISUAL METAPHOR: The Desk -->
-            <div id="desk-visual-container" hx-get="/desk-status" hx-trigger="load, every 2s"
+            <div id="desk-visual-container" hx-get="/desk-status" hx-trigger="load, every 2s, updateSchedule from:body"
                 class="relative w-full h-full flex items-center justify-center transition-all duration-500 pb-20">
                 <!-- Added pb-20 to visually move it 'higher' relative to center -->
 
@@ -142,6 +142,9 @@
                 <!-- Add hx-indicator class to these elements to toggle visibility -->
                 <form hx-post="/book" hx-target="#booking-message" hx-swap="innerHTML" hx-indicator="#book-spinner"
                     class="flex gap-2 items-center justify-between">
+                    <!-- HIDDEN TIMEZONE OFFSET -->
+                    <input type="hidden" name="time_offset" id="time-offset" value="0">
+
                     <div class="flex flex-col gap-1">
                         <label class="text-[8px] uppercase tracking-wider text-gray-400 font-bold">Start</label>
                         <input type="time" name="start_time"
@@ -235,7 +238,17 @@
                 form.reset();
             }
         });
+
+        // Timezone Offset Calculation
+        document.addEventListener("DOMContentLoaded", function () {
+            const offset = new Date().getTimezoneOffset();
+            const input = document.getElementById("time-offset");
+            if (input) {
+                input.value = offset; // Minutes difference from UTC
+            }
+        });
     </script>
 </body>
 
 </html>
+```
