@@ -117,17 +117,33 @@
             </div>
 
             <!-- Booking Controls -->
+            <!-- Booking Controls & Schedule -->
             <div
-                class="absolute bottom-10 left-1/2 transform -translate-x-1/2 glass-panel p-6 rounded-2xl w-full max-w-md">
-                <h3 class="text-xs uppercase tracking-widest text-scifi-muted mb-4 text-center">Resource Allocation</h3>
-                <form hx-post="/book" hx-swap="none" class="flex gap-2">
-                    <input type="number" name="duration" placeholder="Mins needed..."
-                        class="flex-1 bg-white/50 border border-gray-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-scifi-glow transition-colors">
-                    <button type="submit"
-                        class="bg-black text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200/50">Details</button>
-                    <!-- Actual submit implies booking logic -->
-                </form>
-                <div id="booking-message" class="mt-2 text-xs text-center h-4 text-cyan-600"></div>
+                class="absolute bottom-10 left-1/2 transform -translate-x-1/2 glass-panel p-6 rounded-2xl w-full max-w-md flex flex-col gap-4">
+
+                <!-- Schedule List -->
+                <div id="schedule-container" hx-get="/schedule" hx-trigger="load, every 10s">
+                    <!-- Loaded via HTMX -->
+                    <div class="h-10 animate-pulse bg-gray-100 rounded"></div>
+                </div>
+
+                <div class="border-t border-gray-200/50 pt-4">
+                    <h3 class="text-xs uppercase tracking-widest text-scifi-muted mb-4 text-center">Resource Allocation
+                    </h3>
+                    <form hx-post="/book" hx-swap="none" class="flex gap-2 items-center">
+                        <input type="time" name="start_time"
+                            class="bg-white/50 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:border-scifi-glow outline-none w-24"
+                            required>
+                        <span class="text-gray-400 text-xs">TO</span>
+                        <input type="time" name="end_time"
+                            class="bg-white/50 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:border-scifi-glow outline-none w-24"
+                            required>
+
+                        <button type="submit"
+                            class="flex-1 bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors">Book</button>
+                    </form>
+                    <div id="booking-message" class="mt-2 text-xs text-center h-4 text-cyan-600"></div>
+                </div>
             </div>
 
         </main>
@@ -135,9 +151,14 @@
         <!-- Right Side Chat Panel -->
         <aside class="w-80 glass-panel border-l border-white/50 h-full flex flex-col relative z-20 shadow-xl"
             hx-ext="ws" ws-connect="/ws/{{ user.id if user else 0 }}">
+
             <div class="p-4 border-b border-gray-100/50 flex justify-between items-center">
                 <h2 class="text-xs font-bold uppercase tracking-widest text-gray-500">Comms Link</h2>
-                <span class="w-2 h-2 bg-green-400 rounded-full shadow-[0_0_10px_rgba(74,222,128,0.5)]"></span>
+                <div class="flex items-center gap-2">
+                    <span id="ws-status-text" class="text-[10px] text-gray-400">CONNECTING...</span>
+                    <!-- Use a script to swap classes on events -->
+                    <span id="ws-status-indicator" class="w-2 h-2 bg-yellow-400 rounded-full shadow-glow"></span>
+                </div>
             </div>
 
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
@@ -160,6 +181,24 @@
 
     </div>
 
+    <script>
+        // WS Debugging & Indicators
+        document.body.addEventListener('htmx:wsOpen', function (evt) {
+            const ind = document.getElementById('ws-status-indicator');
+            const txt = document.getElementById('ws-status-text');
+            if (ind) { ind.className = "w-2 h-2 bg-green-400 rounded-full shadow-glow"; }
+            if (txt) { txt.innerText = "ONLINE"; }
+        });
+        document.body.addEventListener('htmx:wsClose', function (evt) {
+            const ind = document.getElementById('ws-status-indicator');
+            const txt = document.getElementById('ws-status-text');
+            if (ind) { ind.className = "w-2 h-2 bg-red-400 rounded-full"; }
+            if (txt) { txt.innerText = "OFFLINE"; }
+        });
+        document.body.addEventListener('htmx:wsError', function (evt) {
+            console.error("WS Error", evt);
+        });
+    </script>
 </body>
 
 </html>

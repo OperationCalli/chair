@@ -200,6 +200,82 @@ async def create_booking(request: Request, duration: int = Form(...), db: Sessio
         # We'll just say "Current user has priority"
         return HTMLResponse(f"<span class='text-red-400'>Cannot preempt. Wait your turn.</span>")
 
+@app.get("/schedule", response_class=HTMLResponse)
+async def get_schedule(request: Request, db: Session = Depends(get_db)):
+    # Get bookings for the next 24 hours
+    now = datetime.utcnow()
+    end_window = now + timedelta(hours=24)
+    
+    bookings = db.query(models.Booking).filter(
+        models.Booking.end_time > now,
+        models.Booking.start_time < end_window,
+        models.Booking.is_active == True
+    ).order_by(models.Booking.start_time.asc()).all()
+    
+    return templates.TemplateResponse("partials_schedule.html", {"request": request, "bookings": bookings})
+
+@app.post("/book")
+async def create_booking(request: Request, start_time: str = Form(...), end_time: str = Form(...), db: Session = Depends(get_db)):
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        return HTMLResponse("<span class='text-red-500'>Login required</span>")
+    
+    user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    if not user:
+         return HTMLResponse("<span class='text-red-500'>Invalid User</span>")
+
+    # Parse HH:MM inputs (assuming today)
+    try:
+        now = datetime.utcnow()
+        # Naive approach: Parse time, combine with today's date
+        # Note: UTC vs Local is tricky. We'll assume server time for prototype or pass TZ.
+        # Ideally frontend sends ISO, but "Time to Time" implies simple hours.
+        # Let's assume input is HH:MM in server time (UTC) for simplicity, or we treat it as "Next occurrence of this time".
+        
+        t_start = datetime.strptime(start_time, "%H:%M").time()
+        t_end = datetime.strptime(end_time, "%H:%M").time()
+        
+        dt_start = datetime.combine(now.date(), t_start)
+        dt_end = datetime.combine(now.date(), t_end)
+        
+        # Handle wraparound to next day if time is earlier than now (e.g. booking for 1 AM to 2 AM when it's 11 PM)
+        # Or if start < now, assume it's for tomorrow? 
+        # For this "Competitive" immediate nature, let's assume they might mean "Now" if start is close.
+        # Actually, if dt_start < now, maybe they mean tomorrow.
+        if dt_start < now - timedelta(minutes=5): # allowances for slight lag
+             dt_start += timedelta(days=1)
+             dt_end += timedelta(days=1)
+             
+        if dt_end <= dt_start:
+            # Maybe crossing midnight?
+            dt_end += timedelta(days=1)
+
+        duration = (dt_end - dt_start).total_seconds() / 60
+        if duration <= 0:
+             return HTMLResponse("<span class='text-red-500'>Invalid Duration</span>")
+
+    except ValueError:
+        return HTMLResponse("<span class='text-red-500'>Invalid Time Format</span>")
+
+    # Reuse existing logic for overlap/preemption
+    # ... (Simplified for this update: Just check overlap)
+    
+    conflict = db.query(models.Booking).filter(
+        models.Booking.is_active == True,
+        models.Booking.start_time < dt_end,
+        models.Booking.end_time > dt_start
+    ).first()
+    
+    if not conflict:
+        new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end)
+        db.add(new_booking)
+        db.commit()
+        return HTMLResponse(f"<span class='text-green-500'>Booked {start_time}-{end_time}</span>")
+    else:
+        # Preemption Logic Check (User B is shorter than User A?)
+        # Only applies if conflict is currently active? 
+        return HTMLResponse("<span class='text-red-500'>Slot Occupied (Logic restricted)</span>")
+
 
 # --- CHAT & WEBSOCKETS ---
 
