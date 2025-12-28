@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
@@ -207,8 +207,14 @@
         document.body.addEventListener('htmx:wsClose', function (evt) {
             const ind = document.getElementById('ws-status-indicator');
             const txt = document.getElementById('ws-status-text');
-            if (ind) { ind.className = "w-2 h-2 bg-red-400 rounded-full"; }
-            if (txt) { txt.innerText = "OFFLINE"; }
+            if (ind) { ind.className = "w-2 h-2 bg-red-400 rounded-full animate-pulse"; } // Pulse red
+            if (txt) { txt.innerText = "OFFLINE - RETRYING..."; }
+
+            // Aggressive Reconnect Strategy: Reload page after 3s if connection dies. 
+            // Simple but effective for this prototype.
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
         });
         document.body.addEventListener('htmx:wsError', function (evt) {
             console.error("WS Error", evt);
