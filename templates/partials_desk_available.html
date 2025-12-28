@@ -10,22 +10,15 @@
     <!-- Using a CSS representation for portability in this response, or an <img> tag if we had assets. 
          Prompt said "desk and chair are visible but empty". -->
 
-    <div class="relative z-10 transform scale-110">
-        <!-- Chair Empty -->
-        <div
-            class="absolute top-[20px] left-1/2 -translate-x-1/2 w-32 h-40 bg-white border border-gray-200 rounded-t-3xl shadow-lg opacity-80 desk-chair-back">
-        </div>
-        <div
-            class="absolute top-[140px] left-1/2 -translate-x-1/2 w-36 h-32 bg-gray-50 border border-gray-200 rounded-xl shadow-md desk-chair-seat">
-        </div>
+    <div class="relative z-10 transform hover:scale-105 transition-transform duration-700">
+        <!-- New 3D Asset -->
+        <img src="/static/chair_iso.png" class="w-[500px] h-auto object-contain drop-shadow-2xl animate-float"
+            alt="Future Desk">
 
-        <!-- Desk Surface -->
-        <div
-            class="absolute top-[100px] left-1/2 -translate-x-1/2 w-[400px] h-[120px] bg-gradient-to-b from-white to-gray-50 border border-white rounded-2xl shadow-glass transform rotate-x-12 perspective-lg z-20 flex items-center justify-center">
-
-            <!-- STATUS INDICATOR: AVAILABLE -->
+        <!-- Overlay Status -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-20">
             <div
-                class="flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-md rounded-full border border-cyan-100 shadow-sm">
+                class="flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-md rounded-full border border-cyan-100 shadow-sm hover:shadow-glow transition-shadow cursor-default">
                 <span class="relative flex h-3 w-3">
                     <span
                         class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
@@ -33,7 +26,6 @@
                 </span>
                 <span class="text-xs font-bold tracking-[0.2em] text-cyan-600">UNIT AVAILABLE</span>
             </div>
-
         </div>
     </div>
 
