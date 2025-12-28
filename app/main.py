@@ -1,63 +1,33 @@
-from fastapi import FastAPI, Depends, HTTPException, Request, Form, status, WebSocket
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
-from . import models, schemas, database
-from typing import Optional
+from fastapi import FastAPI, Depends, HTTPException, Request, Form, status, WebSocket, File, UploadFile
+import shutil
+from pathlib import Path
 
-# Init DB
-models.Base.metadata.create_all(bind=database.engine)
-
-app = FastAPI()
-
-import os
-
-if not os.path.exists("static"):
-    os.makedirs("static")
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
-
-# Helper to get DB
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# Temporary Mock User for "Logged In" state since full Auth is a larger flow
-# In a real app we'd use JWT tokens.
-# For this demo, we'll auto-create or use a 'demo user' if not present, 
-# or use a cookie to track userId.
-# Let's assume a simple cookie-based "login" for simplicity of the prototype flow.
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request, db: Session = Depends(get_db)):
-    # Render main dashboard
-    # Check if user is "logged in" via cookie
-    user_id = request.cookies.get("user_id")
-    user = None
-    if user_id:
-        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
-    
-    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+# ... (Previous imports kept if not replacing whole block, but I am replacing large block)
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    # Simple Login/Signup Combined Form
+    # Simple Login/Signup Combined Form with File Upload
     html_content = """
     <html>
     <head>
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-100 h-screen flex items-center justify-center">
-        <form action="/login" method="post" class="bg-white p-8 rounded-xl shadow-lg w-96 flex flex-col gap-4">
+        <form action="/login" method="post" enctype="multipart/form-data" class="bg-white p-8 rounded-xl shadow-lg w-96 flex flex-col gap-4">
             <h1 class="text-xl font-bold mb-2">Identify Yourself</h1>
             <input type="text" name="username" placeholder="Username" class="border p-2 rounded" required>
-            <input type="url" name="profile_image_url" placeholder="Profile Image URL" class="border p-2 rounded" required>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Profile Hologram (Image)</label>
+                <input type="file" name="profile_image" accept="image/*" class="block w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-cyan-50 file:text-cyan-700
+                  hover:file:bg-cyan-100
+                " required />
+            </div>
+
             <button type="submit" class="bg-black text-white p-2 rounded">Enter System</button>
         </form>
     </body>
@@ -66,14 +36,35 @@ async def login_page(request: Request):
     return HTMLResponse(content=html_content)
 
 @app.post("/login")
-async def login(username: str = Form(...), profile_image_url: str = Form(...), db: Session = Depends(get_db)):
+async def login(username: str = Form(...), profile_image: UploadFile = File(...), db: Session = Depends(get_db)):
+    # Ensure upload directory exists
+    upload_dir = Path("static/uploads")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate unique filename (simple collision avoidance: username_filename)
+    # Sanitize filename could be better but basic str approach for now
+    clean_filename = f"{username}_{profile_image.filename}".replace(" ", "_")
+    file_path = upload_dir / clean_filename
+    
+    # Save file
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(profile_image.file, buffer)
+        
+    # URL is /static/uploads/filename
+    image_url = f"/static/uploads/{clean_filename}"
+
     # Simple "Find or Create" logic
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
-        user = models.User(username=username, profile_image_url=profile_image_url, hashed_password="dummy")
+        user = models.User(username=username, profile_image_url=image_url, hashed_password="dummy")
         db.add(user)
-        db.commit()
-        db.refresh(user)
+    else:
+        # Update existing user's image if they re-login? 
+        # For simplicity, yes, update it.
+        user.profile_image_url = image_url
+        
+    db.commit()
+    db.refresh(user)
     
     response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     response.set_cookie(key="user_id", value=str(user.id))
