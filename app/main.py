@@ -2,7 +2,44 @@ from fastapi import FastAPI, Depends, HTTPException, Request, Form, status, WebS
 import shutil
 from pathlib import Path
 
-# ... (Previous imports kept if not replacing whole block, but I am replacing large block)
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
+from . import models, schemas, database
+from typing import Optional
+import os
+
+# Init DB
+models.Base.metadata.create_all(bind=database.engine)
+
+app = FastAPI()
+
+if not os.path.exists("static"):
+    os.makedirs("static")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
+# Helper to get DB
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request, db: Session = Depends(get_db)):
+    # Render main dashboard
+    # Check if user is "logged in" via cookie
+    user_id = request.cookies.get("user_id")
+    user = None
+    if user_id:
+        user = db.query(models.User).filter(models.User.id == int(user_id)).first()
+    
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
