@@ -87,7 +87,7 @@
             </div>
 
             <!-- Schedule List Moved Here -->
-            <div id="schedule-container" hx-get="/schedule" hx-trigger="load, every 10s"
+            <div id="schedule-container" hx-get="/schedule" hx-trigger="load, every 10s, updateSchedule from:body"
                 class="flex-1 overflow-y-auto custom-scrollbar">
                 <div class="h-10 animate-pulse bg-gray-100/50 rounded"></div>
             </div>
@@ -139,7 +139,8 @@
                     </div>
                 </div>
 
-                <form hx-post="/book" hx-target="#booking-message" hx-swap="innerHTML"
+                <!-- Add hx-indicator class to these elements to toggle visibility -->
+                <form hx-post="/book" hx-target="#booking-message" hx-swap="innerHTML" hx-indicator="#book-spinner"
                     class="flex gap-2 items-center justify-between">
                     <div class="flex flex-col gap-1">
                         <label class="text-[8px] uppercase tracking-wider text-gray-400 font-bold">Start</label>
@@ -156,9 +157,17 @@
                     </div>
 
                     <button type="submit"
-                        class="bg-black text-white h-full px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200/50 mt-3 self-end">Book</button>
+                        class="bg-black text-white h-full px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200/50 mt-3 self-end relative min-w-[80px]">
+                        <span class="htmx-indicator-hide">Book</span>
+                        <span id="book-spinner"
+                            class="htmx-indicator absolute inset-0 flex items-center justify-center">
+                            <span
+                                class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                        </span>
+                    </button>
                 </form>
-                <div id="booking-message" class="text-[10px] text-center h-4 text-cyan-600 font-mono mt-1"></div>
+                <div id="booking-message" class="text-[10px] text-center h-4 text-cyan-600 font-mono mt-1 min-h-[1rem]">
+                </div>
             </div>
 
         </main>

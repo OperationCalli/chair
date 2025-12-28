@@ -302,9 +302,11 @@ async def create_booking(request: Request, start_time: str = Form(...), end_time
         new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end, is_active=True)
         db.add(new_booking)
         db.commit()
-        # Trigger an HTMX update of the schedule list potentially? 
-        # For now just success message. User can refresh or polling updates it.
-        return HTMLResponse(f"<span class='text-green-500 font-bold'>OFFICE SECURED</span>")
+        
+        # Success with Trigger
+        response = HTMLResponse(f"<span class='text-green-500 font-bold'>OFFICE SECURED</span>")
+        response.headers["HX-Trigger"] = "updateSchedule"
+        return response
     else:
         # Simple rejection for now to ensure stability
         return HTMLResponse(f"<span class='text-red-500'>TIME CONFLICT</span>")
