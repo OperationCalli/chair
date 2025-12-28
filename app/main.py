@@ -292,24 +292,27 @@ async def create_booking(request: Request, start_time: str = Form(...), end_time
         return HTMLResponse("<span class='text-red-500'>Invalid Time Format</span>")
 
     # Conflict Check
-    conflict = db.query(models.Booking).filter(
-        models.Booking.is_active == True,
-        models.Booking.start_time < dt_end, # Overlap: existing Start < New End
-        models.Booking.end_time > dt_start  # Overlap: existing End > New Start
-    ).first()
-    
-    if not conflict:
-        new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end, is_active=True)
-        db.add(new_booking)
-        db.commit()
+    try:
+        conflict = db.query(models.Booking).filter(
+            models.Booking.is_active == True,
+            models.Booking.start_time < dt_end, 
+            models.Booking.end_time > dt_start
+        ).first()
         
-        # Success with Trigger
-        response = HTMLResponse(f"<span class='text-green-500 font-bold'>OFFICE SECURED</span>")
-        response.headers["HX-Trigger"] = "updateSchedule"
-        return response
-    else:
-        # Simple rejection for now to ensure stability
-        return HTMLResponse(f"<span class='text-red-500'>TIME CONFLICT</span>")
+        if not conflict:
+            new_booking = models.Booking(user_id=user.id, start_time=dt_start, end_time=dt_end, is_active=True)
+            db.add(new_booking)
+            db.commit()
+            
+            # Success with Trigger
+            response = HTMLResponse(f"<span class='text-green-500 font-bold'>OFFICE SECURED</span>")
+            response.headers["HX-Trigger"] = "updateSchedule"
+            return response
+        else:
+            return HTMLResponse(f"<span class='text-red-500'>CONFLICT: {conflict.start_time.strftime('%H:%M')}-{conflict.end_time.strftime('%H:%M')}</span>")
+    except Exception as e:
+        print(f"Booking Error: {e}")
+        return HTMLResponse(f"<span class='text-red-500'>SYSTEM ERROR: {str(e)}</span>")
 
 
 # --- CHAT & WEBSOCKETS ---
